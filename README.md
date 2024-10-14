@@ -37,11 +37,14 @@
 Этот репозиторий посвящён дисциплине "Математика для программирования". В данном проекте рассматриваются различные аспекты разработки приложений и игр с использованием математике.
 
 ## Практические задания
+![image](https://github.com/user-attachments/assets/c04d103b-032e-4e4d-9d09-c5754721b4c6)
+![image](https://github.com/user-attachments/assets/0038e6a3-4726-49a8-bb19-abceebc8762c)
+![image](https://github.com/user-attachments/assets/eb1792c5-f3f5-4622-aaf1-40f6c17626a9)
+![image](https://github.com/user-attachments/assets/cbbcfe2b-6615-47d1-9ec5-bdd30115a06f)
+![image](https://github.com/user-attachments/assets/d235cf63-5a9e-4809-ab36-b8587007f79c)
+![image](https://github.com/user-attachments/assets/65d89b4f-be5c-4295-bdc9-946ef5b44280)
 
-Шифровка 
-![image](https://github.com/user-attachments/assets/0046b0ea-6f83-4a76-bfeb-63214b175d41)
-Расшифровка
-![image](https://github.com/user-attachments/assets/6cc4846d-f935-4199-81ac-dafbdc3f221d)
+
 
 
 ## Контакты
