@@ -74,11 +74,12 @@
 
 1. **Расстановка кораблей с помощью мыши. Вращение осуществляется клавишей "R"**  
    ![image](https://github.com/user-attachments/assets/8f8cc8ed-ab77-43f3-ac86-686ca7446852)
-   
-2. **История выстрелов на игровом поле**  
+   ![image](https://github.com/user-attachments/assets/4f2af35f-509c-400a-8231-704e1cac6003)
+  
+3. **История выстрелов на игровом поле**  
    ![image](https://github.com/user-attachments/assets/09cb7717-08f9-4a5c-bb80-6dee7765c644)
    
-3. **История выстрелов в чате**  
+4. **История выстрелов в чате**  
    ![image](https://github.com/user-attachments/assets/165212c2-fe82-4aa7-a954-fe6364655ca6)
 
 ---
