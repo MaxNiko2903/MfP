@@ -37,98 +37,218 @@
 Этот репозиторий посвящён дисциплине "Математика для программирования". В данном проекте рассматриваются различные аспекты разработки приложений и игр с использованием математике.
 
 ## Практические задания
-# Гонки
+# Унитчтожение комических тел
 
 ```
 import arcade
-import math
 import random
+import json
 
-# Константы
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
-SCREEN_TITLE = "Гонка по кругу"
-NUM_CARS = 5  # Количество машин
-CENTER_X = SCREEN_WIDTH // 2
-CENTER_Y = SCREEN_HEIGHT // 2
-RADIUS = 200  # Радиус круга
-TOTAL_LAPS = 3  # Общее количество кругов для завершения гонки
+SCREEN_TITLE = "Space Game"
 
-class Car(arcade.Sprite):
-    def __init__(self, filename, scale):
-        super().__init__(filename, scale)
-        self.angle = 0
-        self.speed = random.uniform(1, 3)
-        self.laps = 0
-        self.center_x = CENTER_X + RADIUS * math.cos(math.radians(self.angle))
-        self.center_y = CENTER_Y + RADIUS * math.sin(math.radians(self.angle))
-
-    def update(self):
-        self.angle += self.speed
-        self.center_x = CENTER_X + RADIUS * math.cos(math.radians(self.angle))
-        self.center_y = CENTER_Y + RADIUS * math.sin(math.radians(self.angle))
-        if self.angle >= 360:
-            self.angle -= 360
-            self.laps += 1
-
-class MyGame(arcade.Window):
+class SpaceGame(arcade.Window):
     def __init__(self):
         super().__init__(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_TITLE)
-        arcade.set_background_color(arcade.color.AMAZON)
+        self.spaceship = None
+        self.comets = []
+        self.rockets = []
+        self.explosions = []
+        self.bonuses = []
+        self.score = 0
+        self.energy = 5
+        self.energy_recharge_time = 0
+        self.lives = 3
+        self.explosion_sound = arcade.load_sound(":resources:sounds/explosion1.wav")
+        self.rocket_sound = arcade.load_sound(":resources:sounds/laser1.wav")
+        self.bonus_sound = arcade.load_sound(":resources:sounds/coin1.wav")
+        self.high_scores = self.load_high_scores()
 
-        # Создаем машины
-        self.cars = [Car(":resources:images/topdown_tanks/tankBody_blue_outline.png", 0.5) for _ in range(NUM_CARS)]
-        self.leader = None
+    def setup(self):
+        self.spaceship = arcade.Sprite(":resources:images/space_shooter/playerShip1_orange.png", 0.5)
+        self.spaceship.center_x = SCREEN_WIDTH // 2
+        self.spaceship.center_y = 50
+        self.comets = []
+        self.rockets = []
+        self.explosions = []
+        self.bonuses = []
+        self.score = 0
+        self.energy = 5
+        self.lives = 3
 
     def on_draw(self):
-        """ Отрисовка экрана. """
         arcade.start_render()
-
-        # Рисуем трассу
-        arcade.draw_circle_outline(CENTER_X, CENTER_Y, RADIUS, arcade.color.GRAY, 5)
-
-        # Рисуем машины
-        for car in self.cars:
-            car.draw()
-
-        # Отображаем текущего лидера
-        if self.leader:
-            arcade.draw_text(f"Лидер: Персонаж {self.cars.index(self.leader) + 1}", 10, 10, arcade.color.WHITE, 14)
+        self.spaceship.draw()
+        for comet in self.comets:
+            comet.draw()
+        for rocket in self.rockets:
+            rocket.draw()
+        for explosion in self.explosions:
+            explosion.draw()
+        for bonus in self.bonuses:
+            bonus.draw()
+        arcade.draw_text(f"Score: {self.score}", 10, SCREEN_HEIGHT - 30, arcade.color.WHITE, 14)
+        arcade.draw_text(f"Energy: {self.energy}", 10, SCREEN_HEIGHT - 50, arcade.color.WHITE, 14)
+        arcade.draw_text(f"Lives: {self.lives}", 10, SCREEN_HEIGHT - 70, arcade.color.WHITE, 14)
+        self.draw_high_scores()
 
     def update(self, delta_time):
-        """ Обновление игровой логики. """
-        for car in self.cars:
-            car.update()
-            # Случайное изменение скорости и направления
-            if random.random() < 0.1:
-                car.speed = random.uniform(1, 3)
+        self.spaceship.update()
+        for comet in self.comets:
+            comet.update()
+        for rocket in self.rockets:
+            rocket.update()
+        for explosion in self.explosions:
+            explosion.update()
+        for bonus in self.bonuses:
+            bonus.update()
+        self.check_collisions()
+        self.keep_on_screen()
+        self.recharge_energy(delta_time)
 
-        # Определяем текущего лидера
-        self.leader = max(self.cars, key=lambda c: c.laps)
+    def check_collisions(self):
+        for comet in self.comets:
+            if arcade.check_for_collision(self.spaceship, comet):
+                self.comets.remove(comet)
+                self.create_explosion(comet.center_x, comet.center_y)
+                arcade.play_sound(self.explosion_sound)
+                self.lives -= 1
+                if self.lives <= 0:
+                    self.game_over()
+            for rocket in self.rockets:
+                if arcade.check_for_collision(rocket, comet):
+                    self.comets.remove(comet)
+                    self.rockets.remove(rocket)
+                    self.create_explosion(comet.center_x, comet.center_y)
+                    arcade.play_sound(self.explosion_sound)
+                    self.score += 1
+        for bonus in self.bonuses:
+            if arcade.check_for_collision(self.spaceship, bonus):
+                self.bonuses.remove(bonus)
+                arcade.play_sound(self.bonus_sound)
+                self.energy = min(10, self.energy + 3)
 
-        # Проверяем завершение гонки
-        if all(car.laps >= TOTAL_LAPS for car in self.cars):
-            self.end_game()
+    def create_explosion(self, x, y):
+        explosion = arcade.Sprite(":resources:images/space_shooter/playerLife1_orange.png", 0.5)
+        explosion.center_x = x
+        explosion.center_y = y
+        self.explosions.append(explosion)
+        arcade.schedule(self.remove_explosion, 0.5)
 
-    def end_game(self):
-        """ Завершение гонки и отображение результатов. """
-        arcade.draw_text("Гонка завершена!", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, arcade.color.WHITE, 24, anchor_x="center")
-        for i, car in enumerate(sorted(self.cars, key=lambda c: c.laps, reverse=True)):
-            arcade.draw_text(f"Место {i + 1}: Персонаж {self.cars.index(car) + 1}, Круги: {car.laps}", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 30 * (i + 1), arcade.color.WHITE, 14, anchor_x="center")
-        arcade.finish_render()
-        arcade.pause(5)
+    def remove_explosion(self, delta_time):
+        if self.explosions:
+            self.explosions.pop(0)
+
+    def on_key_press(self, key, modifiers):
+        if key == arcade.key.LEFT:
+            self.spaceship.change_x = -5
+        elif key == arcade.key.RIGHT:
+            self.spaceship.change_x = 5
+        elif key == arcade.key.UP:
+            self.spaceship.change_y = 5
+        elif key == arcade.key.DOWN:
+            self.spaceship.change_y = -5
+        elif key == arcade.key.SPACE and self.energy > 0:
+            self.fire_rocket()
+        elif key == arcade.key.R:
+            self.recharge_energy_full()
+
+    def on_key_release(self, key, modifiers):
+        if key == arcade.key.LEFT or key == arcade.key.RIGHT:
+            self.spaceship.change_x = 0
+        elif key == arcade.key.UP or key == arcade.key.DOWN:
+            self.spaceship.change_y = 0
+
+    def fire_rocket(self):
+        if self.energy > 0:
+            rocket = arcade.Sprite(":resources:images/space_shooter/laserBlue01.png", 0.5)
+            rocket.center_x = self.spaceship.center_x
+            rocket.center_y = self.spaceship.center_y
+            rocket.change_y = 10
+            rocket.angle = 90  # Поворот на 90 градусов
+            self.rockets.append(rocket)
+            self.energy -= 1
+            arcade.play_sound(self.rocket_sound)
+
+    def add_comet(self, delta_time):
+        comet_type = random.choice(["normal", "fast", "bonus"])
+        if comet_type == "normal":
+            comet = arcade.Sprite(":resources:images/space_shooter/meteorGrey_big1.png", 0.5)
+            comet.change_y = -2
+        elif comet_type == "fast":
+            comet = arcade.Sprite(":resources:images/space_shooter/meteorGrey_med1.png", 0.5)
+            comet.change_y = -3
+        elif comet_type == "bonus":
+            comet = arcade.Sprite(":resources:images/items/star.png", 0.5)
+            comet.change_y = -2
+            self.bonuses.append(comet)
+        comet.center_x = random.randint(0, SCREEN_WIDTH)
+        comet.center_y = SCREEN_HEIGHT
+        self.comets.append(comet)
+
+    def load_high_scores(self):
+        try:
+            with open("high_scores.json", "r") as file:
+                return json.load(file)
+        except FileNotFoundError:
+            return []
+
+    def save_high_scores(self):
+        with open("high_scores.json", "w") as file:
+            json.dump(self.high_scores, file)
+
+    def draw_high_scores(self):
+        y = SCREEN_HEIGHT - 100
+        arcade.draw_text("High Scores:", 10, y, arcade.color.WHITE, 14)
+        for score in self.high_scores:
+            y -= 20
+            arcade.draw_text(f"{score}", 10, y, arcade.color.WHITE, 14)
+
+    def on_close(self):
+        self.high_scores.append(self.score)
+        self.high_scores.sort(reverse=True)
+        self.high_scores = self.high_scores[:5]
+        self.save_high_scores()
+        super().on_close()
+
+    def keep_on_screen(self):
+        if self.spaceship.center_x < 0:
+            self.spaceship.center_x = 0
+        elif self.spaceship.center_x > SCREEN_WIDTH:
+            self.spaceship.center_x = SCREEN_WIDTH
+        if self.spaceship.center_y < 0:
+            self.spaceship.center_y = 0
+        elif self.spaceship.center_y > SCREEN_HEIGHT:
+            self.spaceship.center_y = SCREEN_HEIGHT
+
+    def recharge_energy(self, delta_time):
+        self.energy_recharge_time += delta_time
+        if self.energy_recharge_time >= 1.0:
+            self.energy = min(5, self.energy + 1)
+            self.energy_recharge_time = 0
+
+    def recharge_energy_full(self):
+        self.energy = 5
+
+    def game_over(self):
         arcade.close_window()
 
 def main():
-    game = MyGame()
+    game = SpaceGame()
+    game.setup()
+    arcade.schedule(game.add_comet, 2.0)
     arcade.run()
 
 if __name__ == "__main__":
     main()
 
 ```
-![image](https://github.com/user-attachments/assets/5fd49833-9d97-4928-8be1-8fac50306c41)
-![image](https://github.com/user-attachments/assets/ab0228a4-3e0e-402f-9935-d00fa60897bf)
+![image](https://github.com/user-attachments/assets/495f663b-ca6d-4dba-976e-31ed6c51f51f)
+![image](https://github.com/user-attachments/assets/9f278f5f-43e1-40d9-90aa-6a61c25f1642)
+![image](https://github.com/user-attachments/assets/69c22acd-0e02-43ae-b333-6fe58eea03e8)
+
+У нас есть система сохранений рекордов, система подсчёта очков, бонусы, разные типы космических тел и озвучка этого всего.
 
 ## Контакты
 
